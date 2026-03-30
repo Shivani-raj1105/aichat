@@ -43,7 +43,6 @@ router.get('/:chatId', async (req, res) => {
 });
 router.put('/:chatId/end', async (req, res) => {
   try {
-    // Since we're not using a database, just return a success response
     res.json({
       message: 'Chat session ended successfully',
       sessionEnd: new Date()
@@ -52,5 +51,4 @@ router.put('/:chatId/end', async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
 module.exports = router; 
