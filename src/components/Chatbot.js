@@ -69,28 +69,20 @@ const Chatbot = ({ onTokenUpdate }) => {
   const [selectedVoice, setSelectedVoice] = useState(null);
   const [qrCodeData, setQrCodeData] = useState(null);
   const [showQRCode, setShowQRCode] = useState(false);
-
-  // Initialize speech synthesis
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       const synth = window.speechSynthesis;
       synthRef.current = synth;
-      
       const loadVoices = () => {
         const voices = synth.getVoices();
         const preferredVoice = voices.find(
           voice => voice.lang.includes('en') && voice.name.includes('Female')
         ) || voices.find(voice => voice.lang.includes('en')) || voices[0];
-        
         if (preferredVoice) {
           setSelectedVoice(preferredVoice);
         }
       };
-
-      // Force Chrome to load voices
       loadVoices();
-      
-      // Handle Chrome's async voice loading
       if (synth.onvoiceschanged !== undefined) {
         synth.onvoiceschanged = loadVoices;
       }
@@ -175,35 +167,28 @@ const Chatbot = ({ onTokenUpdate }) => {
 
   const findMatchingDoctor = (input) => {
     const normalizedInput = normalizeString(input);
-    
-    // Try exact match first
     const exactMatch = Object.keys(DOCTORS).find(
       name => normalizeString(name) === normalizedInput
     );
     if (exactMatch) return exactMatch;
 
-    // Try matching by first name or last name
     const nameMatch = Object.keys(DOCTORS).find(name => {
       const [firstName, lastName] = name.split(' ').map(normalizeString);
       return firstName === normalizedInput || lastName === normalizedInput;
     });
     if (nameMatch) return nameMatch;
 
-    // Try matching by specialty
     const specialtyMatch = Object.entries(DOCTORS).find(
       ([_, specialty]) => normalizeString(specialty).includes(normalizedInput)
     );
     if (specialtyMatch) return specialtyMatch[0];
 
-    // Try partial match with doctor's name
     const partialNameMatch = Object.keys(DOCTORS).find(name => {
       const normalizedName = normalizeString(name);
       return normalizedName.includes(normalizedInput) || 
              normalizedInput.includes(normalizedName);
     });
     if (partialNameMatch) return partialNameMatch;
-
-    // Try matching by specialty keywords
     const specialtyKeywords = {
       'cardio': 'Cardiology',
       'heart': 'Cardiology',
@@ -231,16 +216,11 @@ const Chatbot = ({ onTokenUpdate }) => {
   };
 
   const generateQRCodeFromConversation = useCallback(() => {
-    // Find the last doctor selection and user info from messages
     let doctorInfo = null;
     let lastToken = null;
     let patientInfo = null;
-
-    // Search messages in reverse to find the most recent relevant information
     for (let i = messages.length - 1; i >= 0; i--) {
       const message = messages[i];
-      
-      // Look for doctor selection
       if (!doctorInfo && message.sender === 'bot' && message.text.includes("I've matched you with")) {
         const match = message.text.match(/matched you with (Dr\. \w+) \(([^)]+)\)/);
         if (match) {
@@ -250,16 +230,12 @@ const Chatbot = ({ onTokenUpdate }) => {
           };
         }
       }
-
-      // Look for token number
       if (!lastToken && message.sender === 'bot' && message.text.includes("token number is")) {
         const match = message.text.match(/token number is (T\d+)/);
         if (match) {
           lastToken = match[1];
         }
       }
-
-      // Look for user information
       if (!patientInfo && message.sender === 'user') {
         // Check previous bot messages for context
         if (i > 0 && messages[i-1].sender === 'bot') {
@@ -274,31 +250,25 @@ const Chatbot = ({ onTokenUpdate }) => {
         }
       }
 
-      // If we have all the information, we can stop searching
       if (doctorInfo && lastToken && patientInfo && patientInfo.name && patientInfo.age && patientInfo.gender) {
         break;
       }
     }
-
-    // If we found all necessary information, generate QR code data
     if (doctorInfo && lastToken && patientInfo && patientInfo.name && patientInfo.age && patientInfo.gender) {
       const tokenData = {
         tokenNumber: lastToken,
         timestamp: new Date().toISOString(),
         patientInfo: patientInfo,
         doctorInfo: doctorInfo
-      };
-      
+      }; 
       setQrCodeData(tokenData);
       setTokenNumber(lastToken);
       setSelectedDoctor(doctorInfo.name);
       setUserInfo(patientInfo);
       return tokenData;
     }
-
     return null;
   }, [messages]);
-
   const handleSendMessage = useCallback((message) => {
     if (!message.trim()) return;
 
@@ -362,8 +332,6 @@ const Chatbot = ({ onTokenUpdate }) => {
               "\n\nPlease select a doctor from the list above. You can refer to them by their name (e.g., 'Dr. Sharma' or just 'Sharma') or specialty (e.g., 'Cardiology' or 'heart doctor').";
             break;
           }
-
-          // Verify we have all required information
           if (!userInfo.name || !userInfo.age || !userInfo.gender) {
             botResponse = "I'm missing some of your information. Let's start over. May I know your name, please?";
             setConversationStage(CONVERSATION_STAGES.ASK_NAME);
@@ -491,8 +459,6 @@ const Chatbot = ({ onTokenUpdate }) => {
       }
     }
   }, [isListening, speakMessage]);
-
-  // Add cleanup on unmount
   useEffect(() => {
     return () => {
       // Don't clear the token data on unmount to persist it
@@ -1016,5 +982,4 @@ const Chatbot = ({ onTokenUpdate }) => {
     </Grid>
   );
 };
-
 export default Chatbot; 
